@@ -1,0 +1,476 @@
+{
+	"info": {
+		"_postman_id": "901c6187-0e7d-46ef-9988-c80fc1a4b9d7",
+		"name": "Daml",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "11983631"
+	},
+	"item": [
+		{
+			"name": "Party Company",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"var responseObject = JSON.parse(pm.response.text())\r",
+							"\r",
+							"pm.collectionVariables.set('companyIdentifier', responseObject.result.identifier);"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"identifierHint\": \"Company\",\r\n  \"displayName\": \"Company\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{api}}/parties/allocate",
+					"host": [
+						"{{api}}"
+					],
+					"path": [
+						"parties",
+						"allocate"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Party Buyer",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"var responseObject = JSON.parse(pm.response.text())\r",
+							"\r",
+							"pm.collectionVariables.set('buyerIdentifier', responseObject.result.identifier);"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"identifierHint\": \"BuyerJoe\",\r\n  \"displayName\": \"BuyerJoe\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{api}}/parties/allocate",
+					"host": [
+						"{{api}}"
+					],
+					"path": [
+						"parties",
+						"allocate"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Parties",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{api}}/parties",
+					"host": [
+						"{{api}}"
+					],
+					"path": [
+						"parties"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "JWT",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"// JWT generation script adapted from\r",
+							"// https://gist.github.com/corbanb/db03150abbe899285d6a86cc480f674d\r",
+							"\r",
+							"var jwtSecret = \"not-ok-not-safe\" // ;)\r",
+							"\r",
+							"// Set headers for JWT\r",
+							"var header = {\r",
+							"    'typ': 'JWT',\r",
+							"    'alg': 'HS256'\r",
+							"};\r",
+							"\r",
+							"// Prepare timestamp in seconds\r",
+							"var currentTimestamp = Math.floor(Date.now() / 1000)\r",
+							"\r",
+							"var data = {\r",
+							"    \"https://daml.com/ledger-api\": {\r",
+							"        \"ledgerId\": \"sandbox\",\r",
+							"        \"applicationId\": \"sandbox\",\r",
+							"        \"actAs\": [\r",
+							"            pm.collectionVariables.get(\"companyIdentifier\"),\r",
+							"            pm.collectionVariables.get(\"buyerIdentifier\"),\r",
+							"        ]\r",
+							"    }\r",
+							"}\r",
+							"\r",
+							"\r",
+							"function base64url(source) {\r",
+							"    // Encode in classical base64\r",
+							"    encodedSource = CryptoJS.enc.Base64.stringify(source)\r",
+							"\r",
+							"    // Remove padding equal characters\r",
+							"    encodedSource = encodedSource.replace(/=+$/, '')\r",
+							"\r",
+							"    // Replace characters according to base64url specifications\r",
+							"    encodedSource = encodedSource.replace(/\\+/g, '-')\r",
+							"    encodedSource = encodedSource.replace(/\\//g, '_')\r",
+							"\r",
+							"    return encodedSource\r",
+							"}\r",
+							"\r",
+							"// encode header\r",
+							"var stringifiedHeader = CryptoJS.enc.Utf8.parse(JSON.stringify(header))\r",
+							"var encodedHeader = base64url(stringifiedHeader)\r",
+							"\r",
+							"// encode data\r",
+							"var stringifiedData = CryptoJS.enc.Utf8.parse(JSON.stringify(data))\r",
+							"var encodedData = base64url(stringifiedData)\r",
+							"\r",
+							"// build token\r",
+							"var token = `${encodedHeader}.${encodedData}`\r",
+							"\r",
+							"// sign token\r",
+							"var signature = CryptoJS.HmacSHA256(token, jwtSecret)\r",
+							"signature = base64url(signature)\r",
+							"var signedToken = `${token}.${signature}`\r",
+							"\r",
+							"pm.collectionVariables.set('jwt_token', signedToken)\r",
+							"console.log('Signed and encoded JWT', signedToken)"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "localhost",
+					"host": [
+						"localhost"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create Warranty Contract",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"var responseObject = JSON.parse(pm.response.text())\r",
+							"\r",
+							"pm.collectionVariables.set('contractId', responseObject.result.contractId);\r",
+							"\r",
+							"pm.collectionVariables.set('templateId', responseObject.result.templateId);"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{jwt_token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"templateId\": \"Main:ItemWarranty\",\r\n    \"payload\": {\r\n            \"itemName\" : \"Smartphone\",\r\n            \"itemId\" : \"{{$randomUUID}}\",\r\n            \"payment\" :  540.87,\r\n            \"claims\" : \"\",\r\n            \"canceled\" : false,\r\n            \"cancelReason\" : \"\",\r\n            \"createdOn\" : \"2022-11-11T23:59:59.000Z\",\r\n            \"lastDateOfWarranty\" : \"2022-11-11T23:59:59.000Z\",\r\n            \"lastModificationDate\" : \"2022-11-11T23:59:59.000Z\",\r\n            \"company\" : \"{{companyIdentifier}}\",\r\n            \"buyer\" : \"{{companyIdentifier}}\"\r\n    },\r\n    \"submissionId\": \"{{$randomUUID}}\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{api}}/create",
+					"host": [
+						"{{api}}"
+					],
+					"path": [
+						"create"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Issue Warranty Contract to Buyer",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"var responseObject = JSON.parse(pm.response.text())\r",
+							"\r",
+							"pm.collectionVariables.set('contractId', responseObject.result.events[1].created.contractId);\r",
+							"\r",
+							"pm.collectionVariables.set('templateId', responseObject.result.events[1].created.templateId);"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{jwt_token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"templateId\": \"{{templateId}}\",\r\n    \"contractId\": \"{{contractId}}\",\r\n    \"choice\": \"IssueItemWarrantyTo\",\r\n    \"argument\": {\r\n        \"_beneficiary\" : \"{{buyerIdentifier}}\",\r\n        \"_createdOn\" : \"2022-11-11T23:59:59Z\",\r\n        \"_lastDateOfWarranty\" : \"2023-11-12T00:00:00Z\"\r\n    }\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{api}}/exercise",
+					"host": [
+						"{{api}}"
+					],
+					"path": [
+						"exercise"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Make a Claim to a Warranty Contract",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"var responseObject = JSON.parse(pm.response.text())\r",
+							"\r",
+							"pm.collectionVariables.set('contractId', responseObject.result.events[1].created.contractId);\r",
+							"\r",
+							"pm.collectionVariables.set('templateId', responseObject.result.events[1].created.templateId);"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{jwt_token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"templateId\": \"{{templateId}}\",\r\n    \"contractId\": \"{{contractId}}\",\r\n    \"choice\": \"ClaimWarranty\",\r\n    \"argument\": {\r\n        \"_claimReason\" : \"Camera is not working\",\r\n        \"_claimDate\" : \"2022-11-15T13:19:53Z\"\r\n    }\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{api}}/exercise",
+					"host": [
+						"{{api}}"
+					],
+					"path": [
+						"exercise"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Review All Active Contracts",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{jwt_token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{api}}/query",
+					"host": [
+						"{{api}}"
+					],
+					"path": [
+						"query"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Review Contract Status Copy",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{jwt_token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"contractId\": \"{{contractId}}\",\r\n    \"templateId\": \"{{templateId}}\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{api}}/fetch",
+					"host": [
+						"{{api}}"
+					],
+					"path": [
+						"fetch"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwczovL2RhbWwuY29tL2xlZGdlci1hcGkiOnsibGVkZ2VySWQiOiJzYW5kYm94IiwiYXBwbGljYXRpb25JZCI6InNhbmRib3giLCJhY3RBcyI6WyJSZXNwb25zYWJsZSIsIkNvbXBhbnkiXX19.m9nY1zf0SnIObmec-O23VN9wseF6idYzVdPKZk2B1TE",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "api",
+			"value": "http://localhost:7575/v1",
+			"type": "string"
+		},
+		{
+			"key": "companyIdentifier",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "buyerIdentifier",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "jwt_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "contractId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "templateId",
+			"value": "",
+			"type": "string"
+		}
+	]
+}
