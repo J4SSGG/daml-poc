@@ -1,0 +1,143 @@
+module Main where
+import Daml.Script
+import DA.Time
+import DA.Date
+
+type ItemWarrantyContractId = ContractId ItemWarranty
+
+-- Tracking Item Payment
+template ItemWarranty
+    with
+        itemName: Text
+        itemId: Text
+        payment: Decimal
+        claims: Text
+        canceled: Bool
+        cancelReason: Text
+        createdOn: Time
+        lastDateOfWarranty: Time
+        lastModificationDate: Time
+        company: Party -- i.e. the one User owns money
+        buyer: Party
+    where 
+        signatory company -- the ones that will create the contract
+        observer buyer
+        ensure createdOn <= lastDateOfWarranty
+        choice IssueItemWarrantyTo : ItemWarrantyContractId
+                with
+                    _createdOn: Time
+                    _beneficiary: Party
+                    _lastDateOfWarranty: Time
+                controller company -- the one that will create the warranty
+                do
+                    create this with
+                        buyer = _beneficiary
+                        lastDateOfWarranty = _lastDateOfWarranty
+                        createdOn = _createdOn
+                        lastModificationDate = _createdOn
+
+        choice ClaimWarranty : ItemWarrantyContractId
+                with
+                    _claimReason: Text
+                    _claimDate: Time
+                controller buyer
+                do
+                    create this with
+                        claims = _claimReason
+                        lastModificationDate = _claimDate
+
+        choice CancelItemWarrantyFrom : ItemWarrantyContractId
+                with
+                    _cancel: Bool
+                    _cancelReason: Text
+                    modificationDate: Time
+                controller company, buyer
+                do
+                    create this with
+                        canceled = _cancel
+                        cancelReason = _cancelReason
+                        lastModificationDate = modificationDate
+
+-- test
+
+setup: Script ItemWarrantyContractId
+setup = script do
+    buyerAnita <- allocateParty "BuyerAnita"
+    buyerJeff <- allocateParty "BuyerJeff"
+    buyerJoe <- allocateParty "BuyerJoe"
+    company <- allocateParty "Company"
+
+    sellTvToAnita <- submit company do
+        createCmd ItemWarranty with
+            itemName = "Smartphone"
+            itemId = "123"
+            payment =  100.50
+            claims = ""
+            canceled = False
+            cancelReason = ""
+            createdOn = time (date 2022 Nov 11) 23 59 59
+            lastDateOfWarranty = time (date 2022 Nov 11) 23 59 59
+            lastModificationDate = time (date 2022 Nov 11) 23 59 59
+            company =  company
+            buyer = company
+
+    issueWarrantyToAnita <- submit company do 
+        exerciseCmd sellTvToAnita IssueItemWarrantyTo
+            with
+                _beneficiary = buyerAnita
+                _createdOn = time (date 2022 Nov 14) 23 59 59
+                _lastDateOfWarranty = time (date 2023 Nov 11) 23 59 59
+
+    sellTvToJeff <- submit company do
+        createCmd ItemWarranty with
+            itemName = "Smartphone"
+            itemId = "123"
+            payment =  100.50
+            claims = ""
+            canceled = False
+            cancelReason = ""
+            createdOn = time (date 2022 Nov 11) 23 59 59
+            lastDateOfWarranty = time (date 2022 Nov 11) 23 59 59
+            lastModificationDate = time (date 2022 Nov 11) 23 59 59
+            company =  company
+            buyer = company
+
+    issueWarrantyToJeff <- submit company do 
+        exerciseCmd sellTvToJeff IssueItemWarrantyTo
+            with
+                _beneficiary = buyerJeff
+                _createdOn = time (date 2022 Nov 14) 23 59 59
+                _lastDateOfWarranty = time (date 2023 Nov 11) 23 59 59
+
+    sellTvToJoe <- submit company do
+        createCmd ItemWarranty with
+            itemName = "Smartphone"
+            itemId = "123"
+            payment =  100.50
+            claims = ""
+            canceled = False
+            cancelReason = ""
+            createdOn = time (date 2022 Nov 11) 23 59 59
+            lastDateOfWarranty = time (date 2022 Nov 11) 23 59 59
+            lastModificationDate = time (date 2022 Nov 11) 23 59 59
+            company =  company
+            buyer = company
+    
+    issueWarrantyToJoe <- submit company do 
+        exerciseCmd sellTvToJoe IssueItemWarrantyTo
+            with
+                _beneficiary = buyerJoe
+                _createdOn = time (date 2022 Nov 14) 23 59 59
+                _lastDateOfWarranty = time (date 2024 Nov 11) 23 59 59
+
+    submit buyerJeff do 
+        exerciseCmd issueWarrantyToJeff ClaimWarranty
+            with
+                _claimReason = "Screen is flickering"
+                _claimDate = time (date 2022 Nov 12) 13 59 59
+
+    submit buyerAnita do 
+        exerciseCmd issueWarrantyToAnita ClaimWarranty
+            with
+                _claimReason = "Camera is not working"
+                _claimDate = time (date 2022 Nov 14) 11 19 59

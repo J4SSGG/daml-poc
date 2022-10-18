@@ -1,0 +1,15 @@
+sdk-version: 2.4.0
+name: WarrantyContracts
+version: 0.0.1
+source: daml
+dependencies:
+  - daml-prim
+  - daml-stdlib
+  - daml-script
+start-navigator: true
+init-script: Main:setup
+parties:
+  - BuyerAnita
+  - BuyerJoe
+  - BuyerJeff
+  - Company
